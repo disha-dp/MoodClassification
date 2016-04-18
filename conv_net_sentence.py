@@ -1,8 +1,3 @@
-
-# coding: utf-8
-
-# In[3]:
-
 """
 Sample code for
 Convolutional Neural Networks for Sentence Classification
@@ -21,10 +16,7 @@ import re
 import warnings
 import sys
 import time
-import codecs
-warnings.filterwarnings("ignore") 
-f=open("myoutput.txt","w")
-f1=open("myoutput1.txt","w")
+warnings.filterwarnings("ignore")   
 
 #different non-linearities
 def ReLU(x):
@@ -57,15 +49,16 @@ def train_conv_net(datasets,
     """
     Train a simple conv net
     img_h = sentence length (padded where necessary)
-    img_w = word vector length (300 for word2vec)
+    img_w = word vector length (64 for word2vec)
     filter_hs = filter window sizes    
     hidden_units = [x,y] x is the number of feature maps (per filter window), and y is the penultimate layer
     sqr_norm_lim = s^2 in the paper
     lr_decay = adadelta decay parameter
     """    
     rng = np.random.RandomState(3435)
-    img_h = len(datasets[0][0])-1  
-    print "sentence length",img_h
+    img_h = len(datasets[0][0])-1 #lenght of sent - category
+    #print 'trainnnnn', img_h
+
     filter_w = img_w    
     feature_maps = hidden_units[0]
     filter_shapes = []
@@ -77,7 +70,7 @@ def train_conv_net(datasets,
                   ("dropout", dropout_rate), ("batch_size",batch_size),("non_static", non_static),
                     ("learn_decay",lr_decay), ("conv_non_linear", conv_non_linear), ("non_static", non_static)
                     ,("sqr_norm_lim",sqr_norm_lim),("shuffle_batch",shuffle_batch)]
-    print parameters    
+    #print parameters    
     
     #define model architecture
     index = T.lscalar()
@@ -127,6 +120,8 @@ def train_conv_net(datasets,
     n_batches = new_data.shape[0]/batch_size
     n_train_batches = int(np.round(n_batches*0.9))
     #divide train set into train/val sets 
+    #print img_h
+    #print datasets
     test_set_x = datasets[1][:,:img_h] 
     test_set_y = np.asarray(datasets[1][:,-1],"int32")
     train_set = new_data[:n_train_batches*batch_size,:]
@@ -262,23 +257,25 @@ def get_idx_from_sent(sent, word_idx_map, max_l=51, k=64, filter_h=5):
     """
     Transforms sentence into a list of indices. Pad with zeroes.
     """
+    #for i in word_idx_map:
+        #print 'word_idx_map entry', type(i)
     #print word_idx_map
     x = []
     pad = filter_h - 1
-    #print "pad is",pad
     for i in xrange(pad):
         x.append(0)
-    #print "x",x
     words = sent.split()
-    for word in words:
-        print word.decode('utf-8')
+    words=[w.decode('utf-8') for w in words]
+    for word in words[1:50]:
+        #print type( word)
         if word in word_idx_map:
-            print "matched"
-            print word,word_idx_map[word]
+            #print 'here!'
+            #print 'type append to x: ',type(word_idx_map[word])
             x.append(word_idx_map[word])
+
     while len(x) < max_l+2*pad:
         x.append(0)
-    #print "x is----",x
+    #print len(x)
     return x
 
 def make_idx_data_cv(revs, word_idx_map, cv, max_l=51, k=64, filter_h=5):
@@ -287,13 +284,23 @@ def make_idx_data_cv(revs, word_idx_map, cv, max_l=51, k=64, filter_h=5):
     """
     train, test = [], []
     for rev in revs:
-        sent = get_idx_from_sent(rev["text"], word_idx_map, max_l, k, filter_h)
+        c=get_idx_from_sent(rev["text"], word_idx_map, max_l, k, filter_h)  
+        #print 'c is ',c
+        sent = c
+        #print 'appending: ',rev["y"]
         sent.append(rev["y"])
-        if rev["split"]==cv:            
+        #print 'sent is ',sent
+        if rev["split"]==cv:   
+            #print 'appending to test'         
             test.append(sent)        
         else:  
+            #print 'appending to train'         
             train.append(sent)   
+
+    #print train
     train = np.array(train,dtype="int")
+    #print type(train)
+    #print train.shape
     test = np.array(test,dtype="int")
     return [train, test]     
   
@@ -302,8 +309,16 @@ if __name__=="__main__":
     print "loading data...",
     x = cPickle.load(open("mr.p","rb"))
     revs, W, W2, word_idx_map, vocab = x[0], x[1], x[2], x[3], x[4]
-    print "data loaded!"
-    #print W,W2
+    '''print 'revs '
+    print revs
+    print 'W '
+    print W
+    print 'W2 '
+    print W2
+    print 'word_idx_map '
+    print word_idx_map
+    print vocab
+    print "data loaded!"'''
     mode= sys.argv[1]
     word_vectors = sys.argv[2]    
     if mode=="-nonstatic":
@@ -320,10 +335,11 @@ if __name__=="__main__":
         print "using: word2vec vectors"
         U = W
     results = []
-    r = range(0,10)    
+    r = range(0,5)    
     for i in r:
         datasets = make_idx_data_cv(revs, word_idx_map, i, max_l=56,k=64, filter_h=5)
-        print "train",datasets[0][1]
+        #print 'ds'
+        #print datasets
         perf = train_conv_net(datasets,
                               U,
                               lr_decay=0.95,
@@ -339,9 +355,3 @@ if __name__=="__main__":
         print "cv: " + str(i) + ", perf: " + str(perf)
         results.append(perf)  
     print str(np.mean(results))
-
-
-
-
-
-
