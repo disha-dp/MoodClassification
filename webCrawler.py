@@ -75,8 +75,14 @@ def main():
             lang.find_element_by_tag_name("input").send_keys(Keys.ENTER)
             browser2.find_element_by_xpath(".//*[contains(text(), 'Page layout analysis - split multi-column text into columns')]").click()
             div = browser2.find_element_by_xpath('/html/body/div[3]')
-            actions.drag_and_drop_by_offset(div, 50, 50)
+            actions.move_to_element(div)
+            actions.move_by_offset(119, 0)
+            actions.click_and_hold(on_element=None)
+            actions.move_by_offset(350, 0)
+            actions.release(on_element=None)
             actions.perform()
+            #actions.drag_and_drop_by_offset(div, 50, 50)
+            #actions.perform()
     #except:
     #    print('In Exception !!')
 
