@@ -7,5 +7,5 @@ We used a selenium script to crawl webpages to get few thousand lyrics in Hindi.
 ##Data Preprocessing
 To process the raw data use Preprocessingcode.py which takes Taggedsongs.txt as input.The data is split into 10 folds based on a CV value.
 This will create a pickle object mr.p,which has the data in the required format(vocabulary of all lyrics,word to index map for each word and the vector representation of each word)
-##Training
+##Training and testing
 The mr.p generated in the previous state will be taken as input,for each of the fold value,the data associated with that fold value is considered for training and the remaning folds will be taken as the test set and the input is trained using 3 different filter sizes and types.For each fold Performance will be displayed.
