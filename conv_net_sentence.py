@@ -335,7 +335,7 @@ if __name__=="__main__":
         print "using: word2vec vectors"
         U = W
     results = []
-    r = range(0,10)    
+    r = range(0,5)    
     for i in r:
         datasets = make_idx_data_cv(revs, word_idx_map, i, max_l=56,k=64, filter_h=5)
         #print 'ds'
