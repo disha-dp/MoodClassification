@@ -1,12 +1,4 @@
-"""
-Sample code for
-Convolutional Neural Networks for Sentence Classification
-http://arxiv.org/pdf/1408.5882v2.pdf
-Much of the code is modified from
-- deeplearning.net (for ConvNet classes)
-- https://github.com/mdenil/dropout (for dropout)
-- https://groups.google.com/forum/#!topic/pylearn-dev/3QbKtCumAW4 (for Adadelta)
-"""
+
 import cPickle
 import numpy as np
 from collections import defaultdict, OrderedDict
