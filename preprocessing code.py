@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[9]:
+# In[1]:
 
 import cPickle
 import numpy
@@ -15,31 +15,31 @@ from collections import defaultdict
 words, embeddings = pickle.load(open('polyglot-hi.pkl', 'rb'))
 
 
-# In[10]:
+# In[2]:
 
 word= words[10]
 print word
 print type(embeddings[10])
 
 
-# In[11]:
+# In[3]:
 
 vocab = defaultdict(float)
 revs = []
 
 
-# In[13]:
+# In[6]:
 
 stopwordfile = codecs.open("stop.txt", encoding='utf-8')
 stopwords = [x.strip() for x in stopwordfile.readlines()]
 
 #print str(stopwords)
 
-s=open('TaggedSongs.txt','r')
+s=open('songdump2.txt','r')
 c=s.read()
 diction=ast.literal_eval(c)
 features={}
-
+cv=5
 for k,label in diction.items():
     print label
     #print k - at each song level
@@ -49,7 +49,7 @@ for k,label in diction.items():
     song_words = [w.strip('\n, )(.-24') for w in song_words]
     #remove stop words
     song_words=[x for x in song_words if not x in stopwords]
-          
+    
     for w in song_words: #at word level
         vocab[w]+=1
         if w in words:
@@ -60,8 +60,7 @@ for k,label in diction.items():
             #print 'not in the dictionary:' + w + ' end'
         #print song_vec
     features[label]=song_vec     # ADD song vectors and song labels 
-    cv=10
-    if label=='sad':
+    if 'sad' in label:
         datum  = {"y":1, 
                       "text":k,                             
                       "num_words": len(k.decode('utf-8').split(' ')),
@@ -114,8 +113,11 @@ rand_vecs = {}
 add_unknown_words(rand_vecs, vocab)
 W2, _ = get_W(rand_vecs)
 cPickle.dump([revs, W, W2, word_idx_map, vocab], open("mr.p", "wb"))
+print W2
         
 
+
+# ## 
 
 # In[ ]:
 
