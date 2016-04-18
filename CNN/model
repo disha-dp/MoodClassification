@@ -1,0 +1,5 @@
+The folder contains all files required for 
+1. processing raw data
+2. feeding it into CNN
+3. Testing it out
+4. Measuring accuracy and performance on test + validation data
