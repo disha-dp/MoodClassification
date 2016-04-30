@@ -1,3 +1,6 @@
+#Author: Disha Punjabi
+# Deep Learning for Hindi Mood Classification
+# March 30th 2016
 
 import cPickle
 import numpy as np
