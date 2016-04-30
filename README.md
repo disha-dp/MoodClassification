@@ -1,6 +1,9 @@
 # MoodClassification
 [Our presentation can be found here.](http://prezi.com/mj5sc4nndzx8/?utm_campaign=share&utm_medium=copy&rc=ex0share)
-
+The code base has implementations of:
+1. Web crawer
+2. Naive Bayes
+3. Convolutional Neural Netowrk (Implementation on very similar lines from Yoon Kim's CNN implementation for text classification)
 ##Requirements
 Code is written in Python (2.7) and requires Theano (0.7).
 'polyglot-hi.pkl' is the file which has the maximum hindi words, in which each word is represented a 1x64 vector
