@@ -1,4 +1,6 @@
-
+#Author: Disha Punjabi , Akhila Battula
+# Deep Learning for Hindi Mood Classification
+# March 30th 2016
 import cPickle
 import json
 import ast
