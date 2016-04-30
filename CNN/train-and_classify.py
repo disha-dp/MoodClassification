@@ -24,40 +24,25 @@ def Iden(x):
     y = x
     return(y)
        
-def train_conv_net(datasets,
-                   U,
-                   img_w=64, 
-                   filter_hs=[3,4,5],
-                   hidden_units=[100,2], 
-                   dropout_rate=[0.5],
-                   shuffle_batch=True,
-                   n_epochs=25, 
-                   batch_size=50, 
-                   lr_decay = 0.95,
-                   conv_non_linear="relu",
-                   activations=[Iden],
-                   sqr_norm_lim=9,
-                   non_static=True):
+def train_conv_net(datasets, U, img_w=64,    window_size=[3,4,5], hidden_units=[100,2],  dropout_rate=[0.5],
+                   shuffle_batch=True,total_epochs=24, batch_size=50, lr_decay = 0.90,conv_non_linear="relu",
+                   activations=[Iden], sqr_norm_lim=9):
     """
-    Train a simple conv net
-    img_h = sentence length (padded where necessary)
-    img_w = word vector length (64 for word2vec)
-    filter_hs = filter window sizes    
-    hidden_units = [x,y] x is the number of feature maps (per filter window), and y is the penultimate layer
+    Mostly from https://github.com/yoonkim/CNN_sentence 
     sqr_norm_lim = s^2 in the paper
     lr_decay = adadelta decay parameter
     """    
-    rng = np.random.RandomState(3435)
+    rng = np.random.RandomState(4234)
     img_h = len(datasets[0][0])-1 #lenght of sent - category
-    #print 'trainnnnn', img_h
 
-    filter_w = img_w    
-    feature_maps = hidden_units[0]
+    filter_w = img_w    #  word vec length 
+    feature_maps = hidden_units[0]  #hidden_units = [x,y] x is the number of feature maps (per filter window), and y is the penultimate layer
     filter_shapes = []
     pool_sizes = []
-    for filter_h in filter_hs:
+    for filter_h in window_size:
         filter_shapes.append((feature_maps, 1, filter_h, filter_w))
         pool_sizes.append((img_h-filter_h+1, img_w-filter_w+1))
+
     parameters = [("image shape",img_h,img_w),("filter shape",filter_shapes), ("hidden_units",hidden_units),
                   ("dropout", dropout_rate), ("batch_size",batch_size),("non_static", non_static),
                     ("learn_decay",lr_decay), ("conv_non_linear", conv_non_linear), ("non_static", non_static)
@@ -75,7 +60,7 @@ def train_conv_net(datasets,
     layer0_input = Words[T.cast(x.flatten(),dtype="int32")].reshape((x.shape[0],1,x.shape[1],Words.shape[1]))                                  
     conv_layers = []
     layer1_inputs = []
-    for i in xrange(len(filter_hs)):
+    for i in xrange(len(window_size)):
         filter_shape = filter_shapes[i]
         pool_size = pool_sizes[i]
         conv_layer = LeNetConvPoolLayer(rng, input=layer0_input,image_shape=(batch_size, 1, img_h, img_w),
@@ -84,7 +69,7 @@ def train_conv_net(datasets,
         conv_layers.append(conv_layer)
         layer1_inputs.append(layer1_input)
     layer1_input = T.concatenate(layer1_inputs,1)
-    hidden_units[0] = feature_maps*len(filter_hs)    
+    hidden_units[0] = feature_maps*len(window_size)    
     classifier = MLPDropout(rng, input=layer1_input, layer_sizes=hidden_units, activations=activations, dropout_rates=dropout_rate)
     
     #define parameters of the model and update functions using adadelta
@@ -112,8 +97,8 @@ def train_conv_net(datasets,
     n_batches = new_data.shape[0]/batch_size
     n_train_batches = int(np.round(n_batches*0.9))
     #divide train set into train/val sets 
-    #print img_h
-    #print datasets
+    _set_x = datasets[1][:,:img_h] 
+
     test_set_x = datasets[1][:,:img_h] 
     test_set_y = np.asarray(datasets[1][:,-1],"int32")
     train_set = new_data[:n_train_batches*batch_size,:]
@@ -146,17 +131,19 @@ def train_conv_net(datasets,
         test_pred_layers.append(test_layer0_output.flatten(2))
     test_layer1_input = T.concatenate(test_pred_layers, 1)
     test_y_pred = classifier.predict(test_layer1_input)
+    
+    
     test_error = T.mean(T.neq(test_y_pred, y))
     test_model_all = theano.function([x,y], test_error, allow_input_downcast = True)   
     
     #start training over mini-batches
-    print '... training'
+    #print '... training'
     epoch = 0
     best_val_perf = 0
     val_perf = 0
     test_perf = 0       
     cost_epoch = 0    
-    while (epoch < n_epochs):
+    while (epoch < total_epochs):
         start_time = time.time()
         epoch = epoch + 1
         if shuffle_batch:
@@ -171,21 +158,16 @@ def train_conv_net(datasets,
         train_perf = 1 - np.mean(train_losses)
         val_losses = [val_model(i) for i in xrange(n_val_batches)]
         val_perf = 1- np.mean(val_losses)                        
-        print('epoch: %i, training time: %.2f secs, train perf: %.2f %%, val perf: %.2f %%' % (epoch, time.time()-start_time, train_perf * 100., val_perf*100.))
+        print('Epoch Number: %i, Time to train the model: %.2f secs, Performance on training: %.2f %%, performance on validation: %.2f %%' % (epoch, time.time()-start_time, train_perf * 100., val_perf*100.))
         if val_perf >= best_val_perf:
             best_val_perf = val_perf
             test_loss = test_model_all(test_set_x,test_set_y)        
             test_perf = 1- test_loss         
     return test_perf
 
+
+#Function to leverage GPU features for storing data in shared manner for optimization by Theano
 def shared_dataset(data_xy, borrow=True):
-        """ Function that loads the dataset into shared variables
-        The reason we store our dataset in shared variables is to allow
-        Theano to copy it into the GPU memory (when code is run on GPU).
-        Since copying data into the GPU is slow, copying a minibatch everytime
-        is needed (the default behaviour if the data is not in a shared
-        variable) would lead to a large decrease in performance.
-        """
         data_x, data_y = data_xy
         shared_x = theano.shared(np.asarray(data_x,
                                                dtype=theano.config.floatX),
@@ -235,115 +217,61 @@ def as_floatX(variable):
         return np.cast[theano.config.floatX](variable)
     return theano.tensor.cast(variable, theano.config.floatX)
     
-def safe_update(dict_to, dict_from):
-    """
-    re-make update dictionary for safe updating
-    """
-    for key, val in dict(dict_from).iteritems():
-        if key in dict_to:
-            raise KeyError(key)
-        dict_to[key] = val
-    return dict_to
-    
-def get_idx_from_sent(sent, word_idx_map, max_l=51, k=64, filter_h=5):
-    """
-    Transforms sentence into a list of indices. Pad with zeroes.
-    """
-    #for i in word_idx_map:
-        #print 'word_idx_map entry', type(i)
-    #print word_idx_map
-    x = []
-    pad = filter_h - 1
-    for i in xrange(pad):
-        x.append(0)
-    words = sent.split()
-    words=[w.decode('utf-8') for w in words]
-    for word in words[1:50]:
-        #print type( word)
-        if word in word_idx_map:
-            #print 'here!'
-            #print 'type append to x: ',type(word_idx_map[word])
-            x.append(word_idx_map[word])
 
-    while len(x) < max_l+2*pad:
-        x.append(0)
-    #print len(x)
-    return x
-
-def make_idx_data_cv(revs, word_idx_map, cv, max_l=51, k=64, filter_h=5):
-    """
-    Transforms sentences into a 2-d matrix.
-    """
+def gen_cv_from_idx(revs, word_to_idx, cv, length_of_sentence=51, k=64):
+    #change a sentence into a 2d matrix
     train, test = [], []
     for rev in revs:
-        c=get_idx_from_sent(rev["text"], word_idx_map, max_l, k, filter_h)  
-        #print 'c is ',c
-        sent = c
-        #print 'appending: ',rev["y"]
-        sent.append(rev["y"])
-        #print 'sent is ',sent
-        if rev["split"]==cv:   
-            #print 'appending to test'         
-            test.append(sent)        
-        else:  
-            #print 'appending to train'         
-            train.append(sent)   
+        c = []
+        for i in xrange(4):
+            c.append(0)
+        words = rev["text"].split()
+        words=[w.decode('utf-8') for w in words]
+        for word in words[1:60]:
+            if word in word_to_idx:
+                c.append(word_to_idx[word])
 
-    #print train
+        # add padding till actual length of code
+        while len(c) < length_of_sentence+2*4:
+            c.append(0)
+        sent = c
+        sent.append(rev["y"])
+        if rev["split"]==cv:   
+            test.append(sent)  
+        else:  
+            train.append(sent)   
+    # get train and test into 2 d array
     train = np.array(train,dtype="int")
-    #print type(train)
-    #print train.shape
     test = np.array(test,dtype="int")
+
     return [train, test]     
   
-   
+#Implementation begins here   
 if __name__=="__main__":
-    print "loading data...",
-    x = cPickle.load(open("mr.p","rb"))
-    revs, W, W2, word_idx_map, vocab = x[0], x[1], x[2], x[3], x[4]
-    '''print 'revs '
-    print revs
-    print 'W '
-    print W
-    print 'W2 '
-    print W2
-    print 'word_idx_map '
-    print word_idx_map
-    print vocab
-    print "data loaded!"'''
-    mode= sys.argv[1]
-    word_vectors = sys.argv[2]    
-    if mode=="-nonstatic":
-        print "model architecture: CNN-non-static"
-        non_static=True
-    elif mode=="-static":
-        print "model architecture: CNN-static"
-        non_static=False
-    execfile("conv_net_classes.py")    
-    if word_vectors=="-rand":
-        print "using: random vectors"
-        U = W2
-    elif word_vectors=="-word2vec":
-        print "using: word2vec vectors"
-        U = W
-    results = []
-    r = range(0,5)    
-    for i in r:
-        datasets = make_idx_data_cv(revs, word_idx_map, i, max_l=56,k=64, filter_h=5)
-        #print 'ds'
-        #print datasets
-        perf = train_conv_net(datasets,
-                              U,
-                              lr_decay=0.95,
-                              filter_hs=[3,4,5],
-                              conv_non_linear="relu",
-                              hidden_units=[100,2], 
-                              shuffle_batch=True, 
-                              n_epochs=25, 
-                              sqr_norm_lim=9,
-                              non_static=non_static,
-                              batch_size=50,
-                              dropout_rate=[0.5])
-        print "cv: " + str(i) + ", perf: " + str(perf)
-        results.append(perf)  
-    print str(np.mean(results))
+    
+    print "Load saved Data, using the already established word2vec embeddings",
+    raw_data = cPickle.load(open("datafile.p","rb"))
+    revs, W, W2, word_to_idx, vocab = raw_data[0], raw_data[1], raw_data[2], raw_data[3], raw_data[4]
+    
+    print "The polyglot Hindi word2Vec will be used"
+    U = W
+   
+    non_static=False
+    execfile("classes_for_model.py")    
+    res_set = []
+    for i in range(0,5):
+        print "Cross Val Number : " 
+        print  str(i)
+        #prepare dataset at r 
+        datasets = gen_cv_from_idx(revs, word_to_idx, i, length_of_sentence=56,k=64)
+        
+        #training the CNN for this r with various input parameters
+        perf = train_conv_net (datasets,U, lr_decay=0.90,window_size=[3,4,5],conv_non_linear="relu", hidden_units=[100,2], 
+                                shuffle_batch=True,total_epochs=24, sqr_norm_lim=9, batch_size=50, dropout_rate=[0.5])
+        print ", performance at current value of r: " + str(perf)
+        res_set.append(perf)  
+    # We output the final accuracy of the model    
+    print 'Final result accuracy: ' +str(np.mean(res_set))
+
+
+
