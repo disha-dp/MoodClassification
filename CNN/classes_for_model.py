@@ -1,3 +1,5 @@
+# File taken from
+# https://github.com/yoonkim/CNN_sentence 
 
 # coding: utf-8
 
