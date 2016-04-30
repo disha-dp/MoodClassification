@@ -3,7 +3,7 @@
 The code base has implementations of:
 1. Web crawer
 2. Naive Bayes
-3. Convolutional Neural Netowrk (Implementation on very similar lines from Yoon Kim's CNN implementation for text classification)
+3. Convolutional Neural Netowrk (Implementation on very similar lines from Yoon Kim's CNN implementation for text classification) (https://github.com/yoonkim/CNN_sentence) 
 ##Requirements
 Code is written in Python (2.7) and requires Theano (0.7).
 'polyglot-hi.pkl' is the file which has the maximum hindi words, in which each word is represented a 1x64 vector
