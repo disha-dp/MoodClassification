@@ -1,3 +1,6 @@
+#Author: Sruti Sahani
+# Deep Learning for Hindi Mood Classification
+# April 5, 2016
 import selenium
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
