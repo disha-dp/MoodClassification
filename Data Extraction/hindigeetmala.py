@@ -8,6 +8,10 @@ from selenium.webdriver.support.ui import WebDriverWait
 from PIL import Image
 import pickle
 
+###
+# Class contains setter and getter of all song (Link of song, link of lyrics image and category)
+###
+
 class songlinks:
     def __init__(self, songlink, categories):
         self.songlink = songlink
@@ -26,6 +30,10 @@ class songlinks:
         return self.songlink
 
 def main():
+
+    ###
+    # Traverses year-wise and fetches song data and sets it to the song object
+    ###
 
     browser = webdriver.PhantomJS(executable_path=r'C:\Python34\phantomjs-2.1.1-windows\bin\phantomjs.exe')#Firefox()
     # browser = webdriver.Firefox()
@@ -48,6 +56,10 @@ def main():
                             movielinks.append(tds[j].find_element_by_css_selector('a').get_attribute('href'))
             except:
                 continue
+
+        ###
+        # for each movie gets all the song links and respective category
+        ###
 
         for eachmovie in movielinks:
             try:
@@ -72,6 +84,10 @@ def main():
         songdict={}
         print ("Song length is %d" % len(allSongLinks))
 
+        ###
+        # After getting all the song links, traverses through each of them to get the lyrics image link
+        ###
+
         for eachObject in allSongLinks:
             # print(eachObject.songlink + " " + eachObject.categories + "\n")
             try:
@@ -93,8 +109,10 @@ def main():
                 browser.close()
                 continue
 
-        # browser2 = webdriver.Firefox()
-        # browser2.get('https://www.newocr.com/')
+        ###
+        # Traverses through all song objects again to use OCR and the text representation of each song
+        ###
+
         for eachObject in allSongLinks:
         # if(1):
             try:
@@ -117,10 +135,19 @@ def main():
                     top = loc1['y']
                     right = loc1['x'] + size1['width']
                     bottom1 = loc1['y'] + size1['height']
+
+                    ###
+                    # Crops the image
+                    ###
+
                     img2 = img2.crop((left + (size1['width'] / 2), top, right, bottom1))
                     img2.save('C:\\Users\\LENOVO\\Desktop\\img.png')
                     browser3.quit()
                     # browser3.close()
+
+                    ###
+                    # Uploads the image
+                    ###
 
                     browser2.find_element_by_css_selector('input[type="file"]').clear()
                     browser2.find_element_by_css_selector('input[type="file"]').send_keys('C:\\Users\\LENOVO\\Desktop\\img.png')
@@ -143,7 +170,12 @@ def main():
                     )
                     text = browser2.find_element_by_id("ocr-result").text
                     eachObject.addText(text)
-                    songdict[text] = eachObject.getCategory() + " &&& " + eachObject.getLink()
+
+                    ###
+                    # Appending each songs with their categories into a dictionary
+                    ###
+
+                    songdict[text] = eachObject.getCategory()
                     # print(text + "  "+ eachObject.getCategory())
                     browser2.close()
                 else:
@@ -153,6 +185,10 @@ def main():
             except:
                 print("Last No Image")
                 continue
+
+        ###
+        # Writing the dictionary into a file
+        ###
 
         print("SongDict Length:%d" % len(songdict))
         output.write(str(songdict))
